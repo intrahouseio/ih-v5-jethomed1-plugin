@@ -1,0 +1,24 @@
+{
+  "name": "jethomed1v",
+  "module": "index.js",
+  "single": 1,
+  "comment":"Это файл-манифест. Содержит настройки, команды плагина. ",
+  
+
+  "channel_folder_popup": {
+    "add":[
+      { "id": "folder", "title": "$NewFolder" }
+    ],
+ 
+    "copypaste":false,
+    "delete":true
+  },
+
+  "channel_popup": {
+    "add":[
+    { "id": "folder", "title": "$NewFolder" }
+    ],
+    "copypaste":false,
+    "delete":false
+  }
+}

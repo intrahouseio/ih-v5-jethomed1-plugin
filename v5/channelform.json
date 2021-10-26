@@ -1,0 +1,17 @@
+{
+  "grid": [
+    { "id": "p1", "xs": 6, "class": "main", "table": "devhard" },
+    { "id": "p2", "xs": 6, "class": "main", "table": "devhard" }
+  ],
+  "spacing": 4,
+
+  "p1": [
+    { "prop": "chan", "title": "Channel ID", "type": "text" },
+    { "prop": "desc", "title": "$Type", "type": "text" }
+  ],
+
+  "p2": [
+    { "prop": "r", "title": "$Read", "type": "cb" },
+    { "prop": "w", "title": "$Write", "type": "cb" }
+  ]
+}
