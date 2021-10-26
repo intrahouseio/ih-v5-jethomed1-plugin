@@ -19,17 +19,24 @@ module.exports = async function (plugin) {
   setInterval(read1wire, period_t);
 
   async function sendChannels() {
+    // Определить папки в каналах
+    channels.push({id: 'inputs', title: 'inputs', folder: 1});
+    channels.push({id: 'relays', title: 'relays', folder: 1});
+    channels.push({id: '1-wire', title: '1-wire', folder: 1});
+    channels.push({id: 'leds', title: 'leds', folder: 1});
+    channels.push({id: 'buttons', title: 'buttons', folder: 1});
+
     // Определить свои каналы
-    channels.push({ id: 'DI1', desc: 'DI', gpio: 'gpio472', value: 0 });
-    channels.push({ id: 'DI2', desc: 'DI', gpio: 'gpio471', value: 0 });
-    channels.push({ id: 'DI3', desc: 'DI', gpio: 'gpio470', value: 0 });
-    channels.push({ id: 'DI4', desc: 'DI', gpio: 'gpio469', value: 0 });
-    channels.push({ id: 'BTN_usr', desc: 'DI', gpio: 'gpio436', value: 0 });
-    channels.push({ id: 'DO1', desc: 'DO', gpio: 'gpio456', value: 0, r: 1, w: 1 });
-    channels.push({ id: 'DO2', desc: 'DO', gpio: 'gpio455', value: 0, r: 1, w: 1 });
-    channels.push({ id: 'DO3', desc: 'DO', gpio: 'gpio454', value: 0, r: 1, w: 1 });
-    channels.push({ id: 'LED_r', desc: 'DO', gpio: 'gpio452', value: 0, r: 1, w: 1 });
-    channels.push({ id: 'LED_g', desc: 'DO', gpio: 'gpio453', value: 0, r: 1, w: 1 });
+    channels.push({ id: 'DI1', desc: 'DI', gpio: 'gpio472', value: 0, parent: 'inputs' });
+    channels.push({ id: 'DI2', desc: 'DI', gpio: 'gpio471', value: 0, parent: 'inputs' });
+    channels.push({ id: 'DI3', desc: 'DI', gpio: 'gpio470', value: 0, parent: 'inputs' });
+    channels.push({ id: 'DI4', desc: 'DI', gpio: 'gpio469', value: 0, parent: 'inputs' });
+    channels.push({ id: 'BTN_usr', desc: 'DI', gpio: 'gpio436', value: 0, parent: 'buttons' });
+    channels.push({ id: 'DO1', desc: 'DO', gpio: 'gpio456', value: 0, parent: 'relays', r: 1, w: 1 });
+    channels.push({ id: 'DO2', desc: 'DO', gpio: 'gpio455', value: 0, parent: 'relays', r: 1, w: 1 });
+    channels.push({ id: 'DO3', desc: 'DO', gpio: 'gpio454', value: 0, parent: 'relays', r: 1, w: 1 });
+    channels.push({ id: 'LED_red', desc: 'DO', gpio: 'gpio452', value: 0, parent: 'leds', r: 1, w: 1 });
+    channels.push({ id: 'LED_green', desc: 'DO', gpio: 'gpio453', value: 0, parent: 'leds', r: 1, w: 1 });
     
     // Просканировать подключенные датчики 1-wire
     if (!fs.existsSync(w1folder)) {
@@ -38,7 +45,7 @@ module.exports = async function (plugin) {
       devList = getDevList();
       if (devList.length>0) {
         for (let i = 0; i<devList.length; i++) {
-          channels.push({ id: devList[i], desc: 'AI', value: 0 });
+          channels.push({ id: devList[i], desc: 'AI', value: 0, parent: '1-wire' });
         }
       }
       plugin.log('1-wire devices: ' + devList);
