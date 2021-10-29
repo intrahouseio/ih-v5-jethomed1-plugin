@@ -3,5 +3,5 @@
     "description":"Плагин JetHomeD1",
     "comment":"файл .ih используется для опеределения версии и обновлений.",
     "cross":true,
-	"version":"5.0.0"
+	"version":"5.0.1"
 }
