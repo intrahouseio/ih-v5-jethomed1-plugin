@@ -158,9 +158,10 @@ function readDiscrets() {
       if (item.id) {
         const chanObj = channels.find(chanItem => chanItem.id == item.id);
         if (chanObj) {
+	  if (isNaN(value)) return
           chanObj.value = item.value;
           result.push({ id: item.id, value: item.value })
-	  fs.writeFileSync(gpiofolder+chanObj.gpio+'/value', chanObj.value);
+	  fs.writeFileSync(gpiofolder+chanObj.gpio+'/value', Number(chanObj.value) ? '1' : '0');
         } else {
           plugin.log('Not found channel with id ' + item.id)
         }
