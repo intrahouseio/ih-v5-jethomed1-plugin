@@ -7,11 +7,13 @@
 
   "p1": [
     { "prop": "chan", "title": "Channel ID", "type": "text" },
-    { "prop": "desc", "title": "$Type", "type": "text" }
+    { "prop": "desc", "title": "$Type", "type": "text" },
+    { "prop": "devpropname", "title": "Свойство устройства при автоматической привязке", "type": "input" }
   ],
 
   "p2": [
     { "prop": "r", "title": "$Read", "type": "cb" },
-    { "prop": "w", "title": "$Write", "type": "cb" }
+    { "prop": "w", "title": "$Write", "type": "cb" },
+    { "prop": "calc", "title": "Формула извлечения значения", "type": "input", "hide": "!data.p2.r" }
   ]
 }
