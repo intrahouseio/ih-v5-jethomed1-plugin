@@ -7,7 +7,7 @@ const plugin = require('ih-plugin-api')();
 const app = require('./app');
 
 (async () => {
-  plugin.log('Basic plugin has started.', 0);
+  plugin.log('JethomeD1 plugin has started.', 0);
 
   try {
     // Получить параметры
