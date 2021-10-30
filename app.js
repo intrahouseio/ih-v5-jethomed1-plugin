@@ -27,11 +27,11 @@ module.exports = async function (plugin) {
     channels.push({id: 'buttons', title: 'buttons', folder: 1});
 
     // Определить свои каналы
-    channels.push({ id: 'DI1', desc: 'DI', gpio: 'gpio472', value: 0, parent: 'inputs' });
-    channels.push({ id: 'DI2', desc: 'DI', gpio: 'gpio471', value: 0, parent: 'inputs' });
-    channels.push({ id: 'DI3', desc: 'DI', gpio: 'gpio470', value: 0, parent: 'inputs' });
-    channels.push({ id: 'DI4', desc: 'DI', gpio: 'gpio469', value: 0, parent: 'inputs' });
-    channels.push({ id: 'BTN_usr', desc: 'DI', gpio: 'gpio436', value: 0, parent: 'buttons' });
+    channels.push({ id: 'DI1', desc: 'DI', gpio: 'gpio472', value: 0, parent: 'inputs', r: 1 });
+    channels.push({ id: 'DI2', desc: 'DI', gpio: 'gpio471', value: 0, parent: 'inputs', r: 1 });
+    channels.push({ id: 'DI3', desc: 'DI', gpio: 'gpio470', value: 0, parent: 'inputs', r: 1 });
+    channels.push({ id: 'DI4', desc: 'DI', gpio: 'gpio469', value: 0, parent: 'inputs', r: 1 });
+    channels.push({ id: 'BTN_usr', desc: 'DI', gpio: 'gpio436', value: 0, parent: 'buttons', r: 1 });
     channels.push({ id: 'DO1', desc: 'DO', gpio: 'gpio456', value: 0, parent: 'relays', r: 1, w: 1 });
     channels.push({ id: 'DO2', desc: 'DO', gpio: 'gpio455', value: 0, parent: 'relays', r: 1, w: 1 });
     channels.push({ id: 'DO3', desc: 'DO', gpio: 'gpio454', value: 0, parent: 'relays', r: 1, w: 1 });
@@ -45,7 +45,7 @@ module.exports = async function (plugin) {
       devList = getDevList();
       if (devList.length>0) {
         for (let i = 0; i<devList.length; i++) {
-          channels.push({ id: devList[i], desc: 'AI', value: 0, parent: '1-wire' });
+          channels.push({ id: devList[i], desc: 'AI', value: 0, parent: '1-wire', r: 1 });
         }
       }
       plugin.log('1-wire devices: ' + devList);
@@ -85,7 +85,7 @@ module.exports = async function (plugin) {
     }
   }
 
-function read1wire() {
+async function read1wire() {
   let filename, value ;
     
 	for (let i=0; i<channels.length; i++) {
@@ -97,8 +97,8 @@ function read1wire() {
 		try {
 		    if (fs.existsSync(filename)) 	{
 			// Открыть файл, читать значение
-			value = readTemp(fs.readFileSync(filename));
-		
+			value = await fs.promises.readFile(filename);
+		        value = readTemp(value);
                     }
 		} catch (e) {
 		    plugin.log('ERR: '+e.message);
@@ -108,7 +108,7 @@ function read1wire() {
           }
           if (channels[i].desc == 'DO') {
             filename = gpiofolder+channels[i].gpio+'/value';
-            value = fs.readFileSync(filename);
+            value = await fs.promises.readFile(filename);
             value = parseInt(value.toString());
 	    plugin.sendData([{id:channels[i].id, value}]);
           }	
@@ -127,19 +127,19 @@ function readTemp(data) {
 	return result
     }
 
-function readDiscrets() {
+async function readDiscrets() {
   let data = [];
   for (let i =0; i<channels.length; i++) {
     if (channels[i].desc == 'DI') {
-      let value = fs.readFileSync(gpiofolder+channels[i].gpio+'/value');
+      let value = await fs.promises.readFile(gpiofolder+channels[i].gpio+'/value');
       value = parseInt(value.toString());
       if (value != channels[i].value) {
-        data.push({id: channels[i].id, value: value});
+        //data.push({id: channels[i].id, value: value});
+        plugin.sendData([{id: channels[i].id, value: value}]);
         channels[i].value = value;
       }
     }
   }
-  if (data.length>0) plugin.sendData(data);
 }
 
 
@@ -158,10 +158,10 @@ function readDiscrets() {
       if (item.id) {
         const chanObj = channels.find(chanItem => chanItem.id == item.id);
         if (chanObj) {
-	  if (isNaN(value)) return
+	  if (isNaN(item.value)) return
           chanObj.value = item.value;
           result.push({ id: item.id, value: item.value })
-	  fs.writeFileSync(gpiofolder+chanObj.gpio+'/value', Number(chanObj.value) ? '1' : '0');
+	  fs.promises.writeFile(gpiofolder+chanObj.gpio+'/value', Number(chanObj.value) ? '1' : '0');
         } else {
           plugin.log('Not found channel with id ' + item.id)
         }
