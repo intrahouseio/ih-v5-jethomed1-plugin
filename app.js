@@ -4,21 +4,27 @@
 
 const util = require('util');
 const fs = require('fs');
+const fsPromises = require('fs').promises;
 
-
-module.exports = async function (plugin) {
+module.exports = function (plugin) {
   const w1folder = '/sys/bus/w1/devices/';
   const gpiofolder = '/sys/class/gpio/';
-  const period_t = plugin.params.data.period_t; 
-  const period_d = plugin.params.data.period_d;
-
+  const period_t = plugin.params.data.period_t || 10000; 
+  const period_d = plugin.params.data.period_d || 1000;
   const channels = []; // Плагин имеет свои каналы
   let devList = [];
-  await sendChannels(); // Отправить каналы на старте
-  setInterval(readDiscrets, period_d);
-  setInterval(read1wire, period_t);
+  let nextTimer, nextTimer_t; // таймер поллинга
+  let waiting;   // Флаг ожидания завершения операции (содержит ts старта операции или 0)
+  let toWrite = []; // Массив команд на запись
+  let nextDelay;
+  
+  sendChannels(); // Отправить каналы на старте
+  sendNext();
+  sendNext_t();
+  //setInterval(readDiscrets, period_d);
+  //setInterval(read1wire, period_t);
 
-  async function sendChannels() {
+  function sendChannels() {
     // Определить папки в каналах
     channels.push({id: 'inputs', title: 'inputs', folder: 1});
     channels.push({id: 'relays', title: 'relays', folder: 1});
@@ -85,6 +91,31 @@ module.exports = async function (plugin) {
     }
   }
 
+  function sendNext() {
+    if (waiting) {
+      // TODO Если ожидание длится долго - сбросить флаг и выполнить следующую операцию
+      nextTimer = setTimeout(sendNext, 100); // min interval?
+      return;
+    }
+  
+    nextDelay = period_d; // стандартная задержка после опроса
+    waiting = Date.now();
+    if (toWrite.length) {
+      write();
+      //nextDelay = 100; // интервал - чтение после записи
+    } else {
+      readDiscrets();
+    }
+    waiting = 0;
+    clearTimeout(nextTimer);
+    nextTimer = setTimeout(sendNext, nextDelay); 
+  }
+  
+ function sendNext_t() {
+    read1wire();
+    nextTimer_t = setTimeout(sendNext_t, period_t); 
+  }
+
 async function read1wire() {
   let filename, value ;
     
@@ -92,23 +123,25 @@ async function read1wire() {
           if (channels[i].desc == 'AI') {
 	    filename = w1folder+channels[i].id+'/w1_slave';
 	   
-	    if ( isDS18B20Sensor( channels[i].id )) {
-		val = null;
+	//if ( isDS18B20Sensor( channels[i].id )) {
+		value = null;
 		try {
-		    if (fs.existsSync(filename)) 	{
-			// Открыть файл, читать значение
-			value = await fs.promises.readFile(filename);
-		        value = readTemp(value);
-                    }
+		 // if (fs.statSync(filename).isFile()) 	{
+			  // Открыть файл, читать значение
+		    value = await fsPromises.readFile(filename);
+		    value = readTemp(value);
+      //}
 		} catch (e) {
-		    plugin.log('ERR: '+e.message);
+		  plugin.log('ERR: '+e.message);
+		  plugin.sendData([{id:channels[i].id, chstatus:1}]);
+		  continue;
 		}
-                plugin.sendData([{id:channels[i].id, value}]);
-	    }
+    plugin.sendData([{id:channels[i].id, value: value, chstatus: value == null ? 1 : 0}]);
+	//}
           }
           if (channels[i].desc == 'DO') {
             filename = gpiofolder+channels[i].gpio+'/value';
-            value = await fs.promises.readFile(filename);
+            value = await fsPromises.readFile(filename);
             value = parseInt(value.toString());
 	    plugin.sendData([{id:channels[i].id, value}]);
           }	
@@ -128,10 +161,10 @@ function readTemp(data) {
     }
 
 async function readDiscrets() {
-  let data = [];
+  let value;
   for (let i =0; i<channels.length; i++) {
     if (channels[i].desc == 'DI') {
-      let value = await fs.promises.readFile(gpiofolder+channels[i].gpio+'/value');
+      value = await fsPromises.readFile(gpiofolder+channels[i].gpio+'/value');
       value = parseInt(value.toString());
       if (value != channels[i].value) {
         //data.push({id: channels[i].id, value: value});
@@ -142,6 +175,33 @@ async function readDiscrets() {
   }
 }
 
+function write() {
+    try {
+      let datawrite = toWrite; 
+      let write;
+      toWrite = [];  
+      const result = [];
+      datawrite.forEach(item => {
+        if (item.id) {
+          const chanObj = channels.find(chanItem => chanItem.id == item.id);
+          if (chanObj) {
+	          if (isNaN(item.value)) return
+            chanObj.value = item.value;
+            result.push({ id: item.id, value: item.value })
+	          fsPromises.writeFile(gpiofolder+chanObj.gpio+'/value', Number(chanObj.value) ? '1' : '0');
+          } else {
+            plugin.log('Not found channel with id ' + item.id)
+          }
+        }
+      });
+
+    // Сразу отправляем на сервер
+    if (result.length) plugin.sendData(result);
+    plugin.log('Write completed' + util.inspect(result), 1);
+    } catch (e) {
+      plugin.log('Write ERROR: ' + util.inspect(e));
+    }
+  }
 
   function terminate() {
     console.log('TERMINATE PLUGIN');
@@ -152,24 +212,13 @@ async function readDiscrets() {
   plugin.onAct(message => {
     plugin.log('Action data=' + util.inspect(message));
     if (!message.data) return;
-
-    const result = [];
     message.data.forEach(item => {
-      if (item.id) {
-        const chanObj = channels.find(chanItem => chanItem.id == item.id);
-        if (chanObj) {
-	  if (isNaN(item.value)) return
-          chanObj.value = item.value;
-          result.push({ id: item.id, value: item.value })
-	  fs.promises.writeFile(gpiofolder+chanObj.gpio+'/value', Number(chanObj.value) ? '1' : '0');
-        } else {
-          plugin.log('Not found channel with id ' + item.id)
-        }
-      }
+      toWrite.push(item);
     });
-
-    // Сразу отправляем на сервер - реально нужно отправить на железо
-    if (result.length) plugin.sendData(result);
+    // Попытаться отправить на контроллер
+    // Сбросить таймер поллинга, чтобы не случилось наложения
+    clearTimeout(nextTimer);
+    sendNext();
   });
 
 
