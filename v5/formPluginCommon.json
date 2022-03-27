@@ -9,8 +9,8 @@
 
   "p1": [
     { "prop": "id", "title": "ID", "type": "text" },
-    { "prop": "period_t", "title": "Период опроса датчиков 1-wire", "type": "number", "default": 1000 },
-    { "prop": "period_d", "title": "Период опроса дискретных входов", "type": "number", "default": 100 }
+    { "prop": "period_t", "title": "Задержка между опросами датчиков 1-wire", "type": "number", "default": 1000 },
+    { "prop": "period_d", "title": "Задержка между опросами дискретных входов", "type": "number", "default": 100 }
   ],
 
   "p2": [
