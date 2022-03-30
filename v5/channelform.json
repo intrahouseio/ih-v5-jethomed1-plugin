@@ -16,7 +16,8 @@
   "p2": [
     { "prop": "r", "title": "$Read", "type": "cb" },
     { "prop": "w", "title": "$Write", "type": "cb" },
-    { "prop": "calc", "title": "Формула извлечения значения", "type": "input", "hide": "!data.p2.r" }
+    { "prop": "calc", "title": "$Devhard_Calc", "type": "input", "hide": "!data.p2.r" },
+    { "prop": "calc_out", "title": "$Devhard_Calc_Out", "type": "input", "hide": "!data.p2.w" }
   ],
   "p9": [
     { "prop": "realtime_chan_str", "title": "Канал", "type": "text" },
