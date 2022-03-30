@@ -12,17 +12,12 @@ module.exports = function (plugin) {
   const period_t = plugin.params.data.period_t || 10000; 
   const period_d = plugin.params.data.period_d || 1000;
   const channels = []; // Плагин имеет свои каналы
+  let T1, T2;
   let devList = [];
-  let nextTimer, nextTimer_t; // таймер поллинга
-  let waiting;   // Флаг ожидания завершения операции (содержит ts старта операции или 0)
-  let toWrite = []; // Массив команд на запись
-  let nextDelay;
   
   sendChannels(); // Отправить каналы на старте
   sendNext();
   sendNext_t();
-  //setInterval(readDiscrets, period_d);
-  //setInterval(read1wire, period_t);
 
   function sendChannels() {
     // Определить папки в каналах
@@ -91,34 +86,18 @@ module.exports = function (plugin) {
     }
   }
 
-  function sendNext() {
-    if (waiting) {
-      // TODO Если ожидание длится долго - сбросить флаг и выполнить следующую операцию
-      nextTimer = setTimeout(sendNext, 100); // min interval?
-      return;
-    }
-  
-    nextDelay = period_d; // стандартная задержка после опроса
-    waiting = Date.now();
-    if (toWrite.length) {
-      write();
-      //nextDelay = 100; // интервал - чтение после записи
-    } else {
-      readDiscrets();
-    }
-    waiting = 0;
-    clearTimeout(nextTimer);
-    nextTimer = setTimeout(sendNext, nextDelay); 
+async function sendNext() {
+    await readDiscrets();
+    T1 = setTimeout(sendNext, period_d); 
   }
   
- function sendNext_t() {
-    read1wire();
-    nextTimer_t = setTimeout(sendNext_t, period_t); 
+async function sendNext_t() {
+    await read1wire();
+    T2 = setTimeout(sendNext_t, period_t); 
   }
 
 async function read1wire() {
-  let filename, value ;
-    
+  let filename, value;
 	for (let i=0; i<channels.length; i++) {
           if (channels[i].desc == 'AI') {
 	    filename = w1folder+channels[i].id+'/w1_slave';
@@ -128,7 +107,7 @@ async function read1wire() {
 		try {
 		 // if (fs.statSync(filename).isFile()) 	{
 			  // Открыть файл, читать значение
-		    value = await fsPromises.readFile(filename);
+			  value = await fsPromises.readFile(filename);
 		    value = readTemp(value);
       //}
 		} catch (e) {
@@ -146,7 +125,9 @@ async function read1wire() {
 	    plugin.sendData([{id:channels[i].id, value}]);
           }	
 	}
+	clearTimeout(T2); value = null; filename = null;
     }	
+
 function readTemp(data) {	
     let j, result;
 
@@ -167,19 +148,17 @@ async function readDiscrets() {
       value = await fsPromises.readFile(gpiofolder+channels[i].gpio+'/value');
       value = parseInt(value.toString());
       if (value != channels[i].value) {
-        //data.push({id: channels[i].id, value: value});
         plugin.sendData([{id: channels[i].id, value: value}]);
         channels[i].value = value;
       }
     }
   }
+  clearTimeout(T1); value = null;
+  //plugin.log("Read Time: " + end)
 }
 
-function write() {
+function write(datawrite) {
     try {
-      let datawrite = toWrite; 
-      let write;
-      toWrite = [];  
       const result = [];
       datawrite.forEach(item => {
         if (item.id) {
@@ -212,13 +191,7 @@ function write() {
   plugin.onAct(message => {
     plugin.log('Action data=' + util.inspect(message));
     if (!message.data) return;
-    message.data.forEach(item => {
-      toWrite.push(item);
-    });
-    // Попытаться отправить на контроллер
-    // Сбросить таймер поллинга, чтобы не случилось наложения
-    clearTimeout(nextTimer);
-    sendNext();
+    write(message.data);
   });
 
 
