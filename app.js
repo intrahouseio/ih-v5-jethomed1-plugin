@@ -46,7 +46,7 @@ module.exports = function (plugin) {
       devList = getDevList();
       if (devList.length>0) {
         for (let i = 0; i<devList.length; i++) {
-          channels.push({ id: devList[i], desc: 'AI', value: 0, parent: '1-wire', r: 1 });
+          channels.push({ id: devList[i], desc: 'AI', parent: '1-wire', r: 1 });
         }
       }
       plugin.log('1-wire devices: ' + devList);
