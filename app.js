@@ -41,7 +41,7 @@ module.exports = function (plugin) {
     
     // Просканировать подключенные датчики 1-wire
     if (!fs.existsSync(w1folder)) {
-      plugin.log('ADAPTER: Not found ' + w1folder + '. 1-wire driver is not installed!');
+      plugin.log('ADAPTER: Not found ' + w1folder + '. 1-wire driver is not installed!', 1);
     } else {
       devList = getDevList();
       if (devList.length>0) {
@@ -49,7 +49,7 @@ module.exports = function (plugin) {
           channels.push({ id: devList[i], desc: 'AI', parent: '1-wire', r: 1 });
         }
       }
-      plugin.log('1-wire devices: ' + devList);
+      plugin.log('1-wire devices: ' + devList, 1);
     }
 
     // Отправить каналы на сервер
@@ -81,7 +81,7 @@ module.exports = function (plugin) {
       return arr;
 
     } catch (e) {
-      logger.log("Error reading folder " + w1folder + ". " + e.message);
+      logger.log("Error reading folder " + w1folder + ". " + e.message, 1);
       process.exit();
     }
   }
@@ -111,7 +111,7 @@ async function read1wire() {
 		    value = readTemp(value);
       //}
 		} catch (e) {
-		  plugin.log('ERR: '+e.message);
+		  plugin.log('ERR: '+e.message, 1);
 		  plugin.sendData([{id:channels[i].id, chstatus:1}]);
 		  continue;
 		}
@@ -169,7 +169,7 @@ function write(datawrite) {
             result.push({ id: item.id, value: item.value })
 	          fsPromises.writeFile(gpiofolder+chanObj.gpio+'/value', Number(chanObj.value) ? '1' : '0');
           } else {
-            plugin.log('Not found channel with id ' + item.id)
+            plugin.log('Not found channel with id ' + item.id, 1)
           }
         }
       });
@@ -178,18 +178,18 @@ function write(datawrite) {
     if (result.length) plugin.sendData(result);
     plugin.log('Write completed' + util.inspect(result), 1);
     } catch (e) {
-      plugin.log('Write ERROR: ' + util.inspect(e));
+      plugin.log('Write ERROR: ' + util.inspect(e), 1);
     }
   }
 
   function terminate() {
-    console.log('TERMINATE PLUGIN');
+    plugin.log('TERMINATE PLUGIN');
     // Здесь закрыть все что нужно
   }
 
   // Получили команды управления от сервера
   plugin.onAct(message => {
-    plugin.log('Action data=' + util.inspect(message));
+    plugin.log('Action data=' + util.inspect(message), 1);
     if (!message.data) return;
     write(message.data);
   });
