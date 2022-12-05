@@ -1,7 +1,7 @@
 {
     "id":"jethomed1v",
     "description":"Плагин JetHomeD1",
-    "comment":"файл .ih используется для опеределения версии и обновлений.",
+    "comment":"Process gpio inputs, relays, led and 1-Wire sensors",
     "cross":true,
-	"version":"5.0.6"
+    "version":"5.0.7"
 }
